@@ -11,8 +11,14 @@ static USAGE: &str =
 async fn main() {
     env_logger::init();
     // Generate the config
-    let config =
-        config::Configs::load().unwrap_or_else(|_| panic!("\nFailed to load config!\n{USAGE}\n"));
+    let config = match config::Configs::load() {
+        Ok(c) => c,
+        Err(e) => {
+            println!("Error loading config: {}", e);
+            println!("USAGE: {USAGE}");
+            return;
+        }
+    };
 
     let mut tasks = tokio::task::JoinSet::new();
     for (host, remote) in config.udp {

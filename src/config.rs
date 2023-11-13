@@ -2,7 +2,6 @@
 
 use std::{
     collections::HashMap,
-    io::{Error, ErrorKind},
     net::{Ipv4Addr, SocketAddrV4},
     str::FromStr,
 };
@@ -22,24 +21,27 @@ enum Parse {
 }
 
 impl Configs {
-    pub fn load() -> Result<Self, Error> {
+    pub fn load() -> Result<Self, String> {
         let args: Vec<String> = std::env::args().collect();
+        if args.len() < 2 {
+            return Err("No arguments provided!".to_string());
+        }
         if args[1].ends_with(".json") {
             // Get the JSON
-            let j = std::fs::read_to_string(&args[1])?;
+            let j = std::fs::read_to_string(&args[1])
+                .map_err(|e| format!("Failed to read JSON file: {:?}", e))?;
             Self::load_from_json(&j)
         } else {
             Self::load_from_args(&args[1..])
         }
     }
-    pub fn load_from_args(args: &[String]) -> Result<Self, Error> {
+    pub fn load_from_args(args: &[String]) -> Result<Self, String> {
         let mut udp_map = HashMap::new();
         let mut tcp_map = HashMap::new();
         let host = Ipv4Addr::new(0, 0, 0, 0);
 
         let target = args[0].clone();
-        let target = Ipv4Addr::from_str(&target)
-            .map_err(|_| Error::new(ErrorKind::InvalidData, "Invalid target IP address"))?;
+        let target = Ipv4Addr::from_str(&target).map_err(|_| "Invalid target IP address")?;
 
         let mut parse_mode = None;
         for arg in &args[1..] {
@@ -58,12 +60,7 @@ impl Configs {
                                 SocketAddrV4::new(host, host_ports[i]),
                                 SocketAddrV4::new(target, remote_ports[i]),
                             ),
-                            _ => {
-                                return Err(Error::new(
-                                    ErrorKind::InvalidData,
-                                    "TCP or UDP not selected",
-                                ))
-                            }
+                            _ => return Err("TCP or UDP not selected".to_string()),
                         };
                     }
                 }
@@ -76,12 +73,12 @@ impl Configs {
         })
     }
 
-    pub fn load_from_json(config_string: &str) -> Result<Self, Error> {
+    pub fn load_from_json(config_string: &str) -> Result<Self, String> {
         let mut udp = HashMap::new();
         let mut tcp = HashMap::new();
         let config = match json::parse(config_string) {
             Ok(c) => c,
-            Err(e) => return Err(Error::new(ErrorKind::InvalidData, e.to_string())),
+            Err(e) => return Err(e.to_string()),
         };
 
         match config {
@@ -90,12 +87,7 @@ impl Configs {
                     // Attempt to parse key as an IPv4 addr
                     let remote = match Ipv4Addr::from_str(remote) {
                         Ok(r) => r,
-                        Err(_) => {
-                            return Err(Error::new(
-                                ErrorKind::InvalidData,
-                                format!("Invalid IPv4 address: {remote}"),
-                            ))
-                        }
+                        Err(_) => return Err(format!("Invalid IPv4 address: {remote}")),
                     };
 
                     // Iterate over entries
@@ -129,21 +121,15 @@ impl Configs {
                                             remote_ports
                                                 .extend(remote_port_start..=remote_port_end);
                                             if host_ports.len() != remote_ports.len() {
-                                                return Err(Error::new(
-                                                    ErrorKind::InvalidData,
-                                                    format!(
-                                                        "Port length mismatch defined for entry: {:?}",
-                                                        entry.dump()
-                                                    ),
+                                                return Err(format!(
+                                                    "Port length mismatch defined for entry: {:?}",
+                                                    entry.dump()
                                                 ));
                                             }
                                         } else {
-                                            return Err(Error::new(
-                                                ErrorKind::InvalidData,
-                                                format!(
-                                                    "No ports defined for entry: {:?}",
-                                                    entry.dump()
-                                                ),
+                                            return Err(format!(
+                                                "No ports defined for entry: {:?}",
+                                                entry.dump()
                                             ));
                                         }
                                         let bind = match entry.get("bind") {
@@ -153,9 +139,8 @@ impl Configs {
                                         let bind = match Ipv4Addr::from_str(bind) {
                                             Ok(b) => b,
                                             Err(_) => {
-                                                return Err(Error::new(
-                                                    ErrorKind::InvalidData,
-                                                    format!("Bind address is invalid: {bind}",),
+                                                return Err(format!(
+                                                    "Bind address is invalid: {bind}",
                                                 ));
                                             }
                                         };
@@ -163,22 +148,16 @@ impl Configs {
                                             Some(mode) => match mode.as_str() {
                                                 Some(mode) => mode,
                                                 None => {
-                                                    return Err(Error::new(
-                                                        ErrorKind::InvalidData,
-                                                        format!(
-                                                            "No mode defined for entry: {:?}",
-                                                            entry.dump()
-                                                        ),
+                                                    return Err(format!(
+                                                        "No mode defined for entry: {:?}",
+                                                        entry.dump()
                                                     ));
                                                 }
                                             },
                                             None => {
-                                                return Err(Error::new(
-                                                    ErrorKind::InvalidData,
-                                                    format!(
-                                                        "No mode defined for entry: {:?}",
-                                                        entry.dump()
-                                                    ),
+                                                return Err(format!(
+                                                    "No mode defined for entry: {:?}",
+                                                    entry.dump()
                                                 ));
                                             }
                                         };
@@ -194,52 +173,35 @@ impl Configs {
                                                     SocketAddrV4::new(remote, remote_ports[i]),
                                                 ),
                                                 _ => {
-                                                    return Err(Error::new(
-                                                        ErrorKind::InvalidData,
-                                                        format!("Invalid mode: {mode}",),
-                                                    ));
+                                                    return Err(format!("Invalid mode: {mode}"));
                                                 }
                                             };
                                         }
                                     }
                                     _ => {
-                                        return Err(Error::new(
-                                            ErrorKind::InvalidData,
-                                            format!("Not an object for IPv4 address: {remote}"),
+                                        return Err(format!(
+                                            "Not an object for IPv4 address: {remote}"
                                         ))
                                     }
                                 }
                             }
                         }
-                        _ => {
-                            return Err(Error::new(
-                                ErrorKind::InvalidData,
-                                format!("Expected a list of entries for {:?}", remote),
-                            ))
-                        }
+                        _ => return Err(format!("Expected a list of entries for {:?}", remote)),
                     }
                 }
             }
-            _ => {
-                return Err(Error::new(
-                    ErrorKind::InvalidData,
-                    "Expected an object of objects",
-                ))
-            }
+            _ => return Err("Expected an object of objects".to_string()),
         }
 
         Ok(Self { udp, tcp })
     }
 }
 
-fn parse_port_range(arg: &str) -> Result<(Vec<u16>, Vec<u16>), Error> {
+fn parse_port_range(arg: &str) -> Result<(Vec<u16>, Vec<u16>), &'static str> {
     if arg.contains(':') {
         let parts: Vec<&str> = arg.split(':').collect();
         if parts.len() != 2 {
-            return Err(Error::new(
-                ErrorKind::InvalidData,
-                "Invalid port range syntax, unexpected :",
-            ));
+            return Err("Invalid port range syntax, unexpected :");
         }
 
         Ok(if parts[0].contains('-') {
@@ -250,10 +212,7 @@ fn parse_port_range(arg: &str) -> Result<(Vec<u16>, Vec<u16>), Error> {
             let remote_ports: Vec<u16> = (start..=end).collect();
 
             if host_ports.len() != remote_ports.len() {
-                return Err(Error::new(
-                    ErrorKind::InvalidData,
-                    "Port range length mismatch",
-                ));
+                return Err("Port range length mismatch");
             }
 
             (host_ports, remote_ports)
@@ -261,76 +220,49 @@ fn parse_port_range(arg: &str) -> Result<(Vec<u16>, Vec<u16>), Error> {
             (vec![parse_single(parts[0])?], vec![parse_single(parts[1])?])
         })
     } else {
-        let port = arg.parse::<u16>().map_err(|_| {
-            Error::new(
-                ErrorKind::InvalidData,
-                "Invalid port range syntax, not an int",
-            )
-        })?;
+        let port = arg
+            .parse::<u16>()
+            .map_err(|_| "Invalid port range syntax, not an int")?;
         Ok((vec![port], vec![port]))
     }
 }
 
-fn parse_port_ends(ends: &str) -> Result<(u16, u16), Error> {
+fn parse_port_ends(ends: &str) -> Result<(u16, u16), &'static str> {
     let port_ends: Vec<&str> = ends.split('-').collect();
     if port_ends.len() != 2 {
-        return Err(Error::new(
-            ErrorKind::InvalidData,
-            "Invalid port range syntax, unexpected -",
-        ));
+        return Err("Invalid port range syntax, unexpected -");
     }
 
-    let start = port_ends[0].parse::<u16>().map_err(|_| {
-        Error::new(
-            ErrorKind::InvalidData,
-            "Invalid port range syntax, not an int",
-        )
-    })?;
+    let start = port_ends[0]
+        .parse::<u16>()
+        .map_err(|_| "Invalid port range syntax, not an int")?;
 
-    let end = port_ends[1].parse::<u16>().map_err(|_| {
-        Error::new(
-            ErrorKind::InvalidData,
-            "Invalid port range syntax, not an int",
-        )
-    })?;
+    let end = port_ends[1]
+        .parse::<u16>()
+        .map_err(|_| "Invalid port range syntax, not an int")?;
 
     if start > end {
-        return Err(Error::new(
-            ErrorKind::InvalidData,
-            "Invalid port range syntax, start > end",
-        ));
+        return Err("Invalid port range syntax, start > end");
     }
 
     Ok((start, end))
 }
 
-fn parse_single(arg: &str) -> Result<u16, Error> {
-    arg.parse::<u16>().map_err(|_| {
-        Error::new(
-            ErrorKind::InvalidData,
-            "Invalid port range syntax, not an int",
-        )
-    })
+fn parse_single(arg: &str) -> Result<u16, &'static str> {
+    arg.parse::<u16>()
+        .map_err(|_| "Invalid port range syntax, not an int")
 }
 
-fn pls_json_number_maybe(number: Option<&JsonValue>) -> Result<u16, Error> {
+fn pls_json_number_maybe(number: Option<&JsonValue>) -> Result<u16, &'static str> {
     match number {
         Some(n) => pls_json_number(n),
-        None => Err(Error::new(
-            ErrorKind::InvalidData,
-            "No number found for port",
-        )),
+        None => Err("No number found for port"),
     }
 }
-fn pls_json_number(number: &JsonValue) -> Result<u16, Error> {
+fn pls_json_number(number: &JsonValue) -> Result<u16, &'static str> {
     let num: f32 = match number {
         JsonValue::Number(n) => (*n).into(),
-        _ => {
-            return Err(Error::new(
-                ErrorKind::InvalidData,
-                "Invalid port range syntax, not a number",
-            ))
-        }
+        _ => return Err("Invalid port range syntax, not a number"),
     };
     Ok(num as u16)
 }
