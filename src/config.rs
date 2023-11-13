@@ -219,6 +219,10 @@ fn parse_port_range(arg: &str) -> Result<(Vec<u16>, Vec<u16>), &'static str> {
         } else {
             (vec![parse_single(parts[0])?], vec![parse_single(parts[1])?])
         })
+    } else if arg.contains('-') {
+        let (start, end) = parse_port_ends(arg)?;
+        let host_ports: Vec<u16> = (start..=end).collect();
+        Ok((host_ports.clone(), host_ports))
     } else {
         let port = arg
             .parse::<u16>()
