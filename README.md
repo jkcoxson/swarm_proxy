@@ -1,7 +1,6 @@
 # Swarm Proxy
 
-A proxy that forwards a lot of ports really fast
-(as in starting and config, idk about perf)
+A proxy that forwards a lot of ports really fast and is also pretty quick too
 
 ## Motivation
 
@@ -13,15 +12,15 @@ I'm lazy, so I wrote a proxy to work around a solvable problem :)
 ### Command line
 
 ```bash
-swarm_proxy <target> udp [<udp_port|udp_range>] tcp [<tcp_port|tcp_range>]
+swarm_proxy <config.json> | <target> udp [<udp_port|udp_range>] tcp [<tcp_port|tcp_range>]
 ```
 
 #### Example
 
-Forwards ports 69-79 udp and 80 and 443 tcp to 10.7.0.2
+Forwards ports 69-79 udp and 80 and 443 to 8443 tcp to 10.7.0.2
 
 ```bash
-swarm_proxy 10.7.0.2 udp 69:79 tcp 80 443
+swarm_proxy 10.7.0.2 udp 69-79:69-79 tcp 80 443:8443
 ```
 
 ## Design
@@ -39,3 +38,5 @@ Clients are bound for about five minutes, then the port is released. Tokio chann
 ## Speed
 
 Pretty quick, I'm not about to talk trash about my own proxy.
+I ran a few benchmarks with iperf, the speed in and out of the proxy was negligable.
+Open a PR if you have better benchmarks, or don't.
