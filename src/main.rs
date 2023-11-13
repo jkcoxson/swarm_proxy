@@ -4,8 +4,7 @@ mod config;
 mod tcp;
 mod udp;
 
-static USAGE: &str =
-    "swarm_proxy <config.json> | <target> udp [<udp_port|udp_range>] tcp [<tcp_port|tcp_range>]";
+static USAGE: &str = "swarm_proxy <config.json> | <target> [<mode> [<ports>]]";
 
 #[tokio::main]
 async fn main() {

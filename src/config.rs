@@ -1,5 +1,53 @@
 // Jackson Coxson
 
+static HELP: &str = r#"Swarm Proxy
+A proxy for forwarding a bunch of ports really quickly
+
+File Usage:
+    swarm_proxy <config_file.json>
+    Example:
+    {
+        "10.7.0.1": [
+            {
+                "mode": "udp",
+                "host_port": 5000,
+                "remote_port": 7000,
+                "bind": "127.0.0.1" // optional
+            },
+            {
+                "mode": "tcp",
+                "host_port_start": 5001,
+                "host_port_end": 5010,
+                "remote_port_start": 101,
+                "remote_port_end": 110,
+            }
+        ]
+    }
+
+Command Line Usage:
+    swarm_proxy <target> [<mode> [<ports>]]
+
+    target: IPv4 address of the target
+    mode: udp or tcp
+    ports:
+        A single port can be defined with ',' ex 8080
+        A range of ports can be defined with '-' ex 8080-8084
+        Binding to a different port can be defined with ':' ex 8080:8081
+        A range and different binds can be defined ex 8080-8084:7070-7074
+    
+    Examples:
+        swarm_proxy 10.7.0.1 udp 5000:7000 tcp 5001-5010:101-110
+        swarm_proxy 1.1.1.1 udp 53
+"#;
+
+static ABOUT: &str = r#"Swarm Proxy
+A proxy for forwarding a bunch of ports really quickly
+
+Written by Jackson Coxson
+Repository: https://github.com/jkcoxson/swarm_proxy
+License: MIT
+"#;
+
 use std::{
     collections::HashMap,
     net::{Ipv4Addr, SocketAddrV4},
@@ -25,6 +73,18 @@ impl Configs {
         let args: Vec<String> = std::env::args().collect();
         if args.len() < 2 {
             return Err("No arguments provided!".to_string());
+        }
+        if args[1] == "-h" || args[1] == "--help" {
+            println!("{HELP}");
+            return Err("Help message printed".to_string());
+        }
+        if args[1] == "-a" || args[1] == "--about" {
+            println!("{ABOUT}");
+            return Err("About message printed".to_string());
+        }
+        if args[1] == "-v" || args[1] == "--version" {
+            println!("v{}", env!("CARGO_PKG_VERSION"));
+            return Err("Version number printed".to_string());
         }
         if args[1].ends_with(".json") {
             // Get the JSON
