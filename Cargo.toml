@@ -2,6 +2,14 @@
 name = "swarm_proxy"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+description = "A proxy for forwarding a bunch of ports really quickly"
+homepage = "https://github.com/jkcoxson/swarm_proxy"
+documentation = "https://docs.rs/swarm_proxy"
+repository = "https://github.com/jkcoxson/swarm_proxy"
+readme = "README.md"
+keywords = ["proxy", "tcp", "udp"]
+categories = ["network"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
