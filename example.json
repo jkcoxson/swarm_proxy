@@ -1,0 +1,18 @@
+{
+    "10.7.0.1": [
+        {
+            "mode": "udp",
+            "host_port": 5000,
+            "remote_port": 7000,
+            "bind": "0.0.0.0"
+        },
+        {
+            "mode": "tcp",
+            "host_port_start": 5001,
+            "host_port_end": 5010,
+            "remote_port_start": 101,
+            "remote_port_end": 110,
+            "bind": "127.0.0.1"
+        }
+    ]
+}

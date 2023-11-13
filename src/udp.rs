@@ -2,7 +2,7 @@
 
 use std::{
     collections::HashMap,
-    net::{Ipv4Addr, SocketAddr, SocketAddrV4},
+    net::{SocketAddr, SocketAddrV4},
     time::Duration,
 };
 
@@ -47,13 +47,13 @@ impl SocketMap {
     }
 }
 
-pub async fn open_udp(port: u16, target: Ipv4Addr) {
-    let socket = UdpSocket::bind(("0.0.0.0", port)).await.unwrap();
-    info!("Listening on UDP port {port}");
+pub async fn open_udp(host: SocketAddrV4, remote: SocketAddrV4) {
+    let socket = UdpSocket::bind(host).await.unwrap();
+    info!("Listening on UDP {:?}", host);
 
     let (master_tx, master_rx) = unbounded_async();
 
-    let mut slaves = SocketMap::new(SocketAddrV4::new(target, port), master_tx);
+    let mut slaves = SocketMap::new(remote, master_tx);
     loop {
         let mut buf = [0u8; BUFFER_SIZE];
         tokio::select! {
